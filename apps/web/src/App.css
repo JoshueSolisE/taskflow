@@ -512,32 +512,32 @@ h1 {
   font-size: 10px;
 }
 
-.priority-alta {
+.priority-high {
   background: #fff0f0;
   color: #d85b63;
 }
 
-.priority-media {
+.priority-medium {
   background: #fff5e7;
   color: #c78b31;
 }
 
-.priority-baja {
+.priority-low {
   background: #edf8f2;
   color: #30966a;
 }
 
-.status-pendiente {
+.status-pending {
   background: #f2f2f7;
   color: #77798e;
 }
 
-.status-en-progreso {
+.status-in-progress {
   background: #edf4ff;
   color: #4289dc;
 }
 
-.status-completada {
+.status-done {
   background: #e9f8f0;
   color: #21996b;
 }

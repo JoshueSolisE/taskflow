@@ -1,5 +1,7 @@
 
 import { useEffect, useState } from 'react'
+import { getProjects, getProjectTasks } from './services/api'
+import type { Project, Task as ApiTask } from './types/task'
 import './App.css'
 
 type HealthResponse = {
@@ -8,37 +10,64 @@ type HealthResponse = {
   timestamp: string
 }
 
-type TaskStatus = 'Pendiente' | 'En progreso' | 'Completada'
+type DisplayTaskStatus = 'Pending' | 'In Progress' | 'Done'
+type DisplayPriority = 'High' | 'Medium' | 'Low'
+type Filter = 'All' | DisplayTaskStatus
 
-type Task = {
-  id: number
+type DashboardTask = {
+  id: string
   title: string
   project: string
-  status: TaskStatus
-  priority: 'Alta' | 'Media' | 'Baja'
+  status: DisplayTaskStatus
+  priority: DisplayPriority
   dueDate: string
 }
 
-const projects = [
-  { id: 1, name: 'TaskFlow', description: 'Aplicación de gestión de tareas', progress: 35, color: 'purple' },
-  { id: 2, name: 'Portfolio personal', description: 'Preparación para entrevistas', progress: 60, color: 'blue' },
-  { id: 3, name: 'Aprendizaje TypeScript', description: 'Práctica y ejercicios', progress: 80, color: 'green' },
-]
+type DashboardProject = {
+  id: string
+  name: string
+  description: string
+  progress: number
+  color: string
+}
 
-const initialTasks: Task[] = [
-  { id: 1, title: 'Configurar la estructura del proyecto', project: 'TaskFlow', status: 'Completada', priority: 'Alta', dueDate: 'Hoy' },
-  { id: 2, title: 'Diseñar el dashboard principal', project: 'TaskFlow', status: 'En progreso', priority: 'Alta', dueDate: 'Hoy' },
-  { id: 3, title: 'Definir el modelo de datos', project: 'TaskFlow', status: 'Pendiente', priority: 'Media', dueDate: 'Mañana' },
-  { id: 4, title: 'Practicar tipos e interfaces', project: 'Aprendizaje TypeScript', status: 'En progreso', priority: 'Media', dueDate: '30 oct.' },
-  { id: 5, title: 'Actualizar el CV', project: 'Portfolio personal', status: 'Pendiente', priority: 'Alta', dueDate: '31 oct.' },
-]
+function mapStatus(status: ApiTask['status']): DisplayTaskStatus {
+  const statuses: Record<ApiTask['status'], DisplayTaskStatus> = {
+    TODO: 'Pending',
+    IN_PROGRESS: 'In Progress',
+    DONE: 'Done',
+  }
 
-type Filter = 'Todas' | TaskStatus
+  return statuses[status]
+}
+
+function mapPriority(priority: ApiTask['priority']): DisplayPriority {
+  const priorities: Record<ApiTask['priority'], DisplayPriority> = {
+    HIGH: 'High',
+    MEDIUM: 'Medium',
+    LOW: 'Low',
+  }
+
+  return priorities[priority]
+}
+
+function formatDueDate(dueDate: string | null): string {
+  if (!dueDate) return 'No Date'
+
+  return new Intl.DateTimeFormat('es-MX', {
+    day: 'numeric',
+    month: 'short',
+  }).format(new Date(dueDate))
+}
 
 function App() {
   const [health, setHealth] = useState<HealthResponse | null>(null)
   const [apiError, setApiError] = useState(false)
-  const [filter, setFilter] = useState<Filter>('Todas')
+  const [filter, setFilter] = useState<Filter>('All')
+  const [projects, setProjects] = useState<DashboardProject[]>([])
+  const [tasks, setTasks] = useState<DashboardTask[]>([])
+  const [loadingTasks, setLoadingTasks] = useState(true)
+  const [tasksError, setTasksError] = useState<string | null>(null)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -68,21 +97,97 @@ function App() {
     return () => controller.abort()
   }, [])
 
+  useEffect(() => {
+    let active = true
+    
+    async function loadDashboard() {
+      try {
+        setLoadingTasks(true)
+        setTasksError(null)
+
+        const apiProjects = await getProjects()
+
+        const results = await Promise.all(
+          apiProjects.map(async (project: Project) => ({
+            project,
+            tasks: await getProjectTasks(project.id),
+          })),
+        )
+
+        if (!active) return
+
+        const projectNames = new Map(
+          apiProjects.map((project) => [project.id, project.name]),
+        )
+
+        const dashboardTasks: DashboardTask[] = results.flatMap(
+          ({ tasks: projectTasks }) => 
+            projectTasks.map((task: ApiTask) => ({
+              id: task.id,
+              title: task.title,
+              project: projectNames.get(task.projectId) ?? 'Unknown Proyect',
+              status: mapStatus(task.status),
+              priority: mapPriority(task.priority),
+              dueDate: formatDueDate(task.dueDate),
+            })),
+        )
+
+        const dashboardProjects: DashboardProject[] = results.map(
+          ({ project, tasks: projectTasks }, index) => {
+            const completed = projectTasks.filter(
+              (task) => task.status === 'DONE',
+            ).length
+
+            return {
+              id: project.id,
+              name: project.name,
+              description: project.description ?? 'No Description',
+              progress:
+                projectTasks.length === 0
+                  ? 0
+                  : Math.round((completed / projectTasks.length) * 100),
+              color: ['purple', 'blue', 'green'][index % 3],
+            }
+          },
+        )
+
+        setProjects(dashboardProjects)
+        setTasks(dashboardTasks)
+      } catch (error) {
+        if (active) {
+          setTasksError(
+            error instanceof Error
+              ? error.message
+              : 'Data can not be loaded',
+          )
+        }
+      } finally {
+        if (active) setLoadingTasks(false)
+      }
+    }
+
+    void loadDashboard()
+
+    return () => {
+      active = false
+    }
+  }, [])
+
   const filteredTasks =
-    filter === 'Todas'
-      ? initialTasks
-      : initialTasks.filter((task) => task.status === filter)
+    filter === 'All'
+      ? tasks
+      : tasks.filter((task) => task.status === filter)
 
-  const completedTasks = initialTasks.filter(
-    (task) => task.status === 'Completada',
+  const completedTasks = tasks.filter(
+    (task) => task.status === 'Done',
   ).length
 
-  const inProgressTasks = initialTasks.filter(
-    (task) => task.status === 'En progreso',
+  const inProgressTasks = tasks.filter(
+    (task) => task.status === 'In Progress',
   ).length
 
-  const pendingTasks = initialTasks.filter(
-    (task) => task.status === 'Pendiente',
+  const pendingTasks = tasks.filter(
+    (task) => task.status === 'Pending',
   ).length
 
   return (
@@ -93,7 +198,7 @@ function App() {
           <span>TaskFlow</span>
         </a>
 
-        <p className="nav-label">ESPACIO DE TRABAJO</p>
+        <p className="nav-label">Workspace</p>
 
         <nav className="navigation" aria-label="Navegación principal">
           <a className="nav-item active" href="#inicio">
@@ -102,11 +207,11 @@ function App() {
           </a>
           <a className="nav-item" href="#proyectos">
             <span aria-hidden="true">◫</span>
-            Proyectos
+            Proyects
           </a>
           <a className="nav-item" href="#tareas">
             <span aria-hidden="true">✓</span>
-            Mis tareas
+            My Tasks
           </a>
         </nav>
 
@@ -116,7 +221,7 @@ function App() {
               className={`status-dot ${health ? 'online' : apiError ? 'offline' : ''}`}
             />
             <div>
-              <strong>Estado de la API</strong>
+              <strong>API Status</strong>
               <small>
                 {health ? 'Conectada' : apiError ? 'Sin conexión' : 'Comprobando...'}
               </small>
@@ -128,17 +233,17 @@ function App() {
 
       <main className="main-content" id="inicio">
         <header className="topbar">
-          <span className="breadcrumb">Espacio personal / Dashboard</span>
+          <span className="breadcrumb">Personal Space / Dashboard</span>
           <span className="user-avatar" aria-label="Perfil de usuario">U</span>
         </header>
 
         <div className="page-content">
           <section className="welcome-section">
             <div>
-              <p className="eyebrow">TU ESPACIO DE TRABAJO</p>
+              <p className="eyebrow">YOUR WORKSPACE</p>
               <h1>Dashboard</h1>
               <p className="muted">
-                Organiza tus proyectos y avanza un paso a la vez.
+                Organize your projects and move forward step by step.
               </p>
             </div>
             <span className="today-label">
@@ -153,48 +258,48 @@ function App() {
           <section className="stats-grid" aria-label="Resumen de tareas">
             <article className="stat-card">
               <div className="stat-heading">
-                <span>Total de tareas</span>
+                <span>Total Tasks</span>
                 <span className="stat-icon purple-icon">▤</span>
               </div>
-              <strong className="stat-number">{initialTasks.length}</strong>
-              <span className="stat-caption">En todos tus proyectos</span>
+              <strong className="stat-number">{tasks.length}</strong>
+              <span className="stat-caption">All Your Proyects</span>
             </article>
 
             <article className="stat-card">
               <div className="stat-heading">
-                <span>Pendientes</span>
+                <span>Pendings</span>
                 <span className="stat-icon orange-icon">◷</span>
               </div>
               <strong className="stat-number">{pendingTasks}</strong>
-              <span className="stat-caption">Por comenzar</span>
+              <span className="stat-caption">To begin with</span>
             </article>
 
             <article className="stat-card">
               <div className="stat-heading">
-                <span>En progreso</span>
+                <span>In Process</span>
                 <span className="stat-icon blue-icon">↗</span>
               </div>
               <strong className="stat-number">{inProgressTasks}</strong>
-              <span className="stat-caption">Actualmente en marcha</span>
+              <span className="stat-caption">Currently underway</span>
             </article>
 
             <article className="stat-card">
               <div className="stat-heading">
-                <span>Completadas</span>
+                <span>Completed</span>
                 <span className="stat-icon green-icon">✓</span>
               </div>
               <strong className="stat-number">{completedTasks}</strong>
-              <span className="stat-caption">Trabajo terminado</span>
+              <span className="stat-caption">Work completed</span>
             </article>
           </section>
 
           <section className="section-block" id="proyectos">
             <div className="section-heading">
               <div>
-                <h2>Tus proyectos</h2>
-                <p className="muted">Un vistazo a lo que tienes en marcha.</p>
+                <h2>Your Proyects</h2>
+                <p className="muted">A look at what you have underway.</p>
               </div>
-              <span className="section-count">{projects.length} proyectos</span>
+              <span className="section-count">{projects.length} proyects</span>
             </div>
 
             <div className="projects-grid">
@@ -206,7 +311,7 @@ function App() {
                   <h3>{project.name}</h3>
                   <p className="project-description">{project.description}</p>
                   <div className="progress-label">
-                    <span>Progreso</span>
+                    <span>Progress</span>
                     <strong>{project.progress}%</strong>
                   </div>
                   <div
@@ -230,13 +335,13 @@ function App() {
           <section className="section-block tasks-section" id="tareas">
             <div className="section-heading">
               <div>
-                <h2>Tareas recientes</h2>
-                <p className="muted">Mantén el ritmo y sigue avanzando.</p>
+                <h2>Recent tasks</h2>
+                <p className="muted">Keep up the pace and keep moving forward.</p>
               </div>
             </div>
 
             <div className="task-filters" aria-label="Filtrar tareas">
-              {(['Todas', 'Pendiente', 'En progreso', 'Completada'] as Filter[]).map(
+              {(['All', 'Pending', 'In Progress', 'Done'] as Filter[]).map(
                 (option) => (
                   <button
                     key={option}
@@ -250,18 +355,26 @@ function App() {
                 ),
               )}
             </div>
+            {loadingTasks && (
+              <p className="muted">Loading your tasks...</p>
+            )}
 
+            {tasksError && (
+              <p role="alert" className="empty-state">
+                Your tasks couldn't be loaded  {tasksError}
+              </p>
+            )}  
             <div className="task-list">
               {filteredTasks.map((task) => (
                 <article className="task-row" key={task.id}>
                   <span
-                    className={`task-check ${task.status === 'Completada' ? 'checked' : ''}`}
+                    className={`task-check ${task.status === 'Done' ? 'checked' : ''}`}
                     aria-hidden="true"
                   >
-                    {task.status === 'Completada' ? '✓' : ''}
+                    {task.status === 'Done' ? '✓' : ''}
                   </span>
                   <div className="task-info">
-                    <strong className={task.status === 'Completada' ? 'task-done' : ''}>
+                    <strong className={task.status === 'Done' ? 'task-done' : ''}>
                       {task.title}
                     </strong>
                     <span>{task.project}</span>
@@ -276,14 +389,14 @@ function App() {
                 </article>
               ))}
 
-              {filteredTasks.length === 0 && (
-                <p className="empty-state">No hay tareas para este filtro.</p>
+              {!loadingTasks && !tasksError && filteredTasks.length === 0 && (
+                <p className="empty-state">There are no tasks for this filter.</p>
               )}
             </div>
           </section>
 
           <footer className="page-footer">
-            Construyendo TaskFlow paso a paso.
+            Building TaskFlow step by step.
             {health && (
               <span> API: {health.service} · {health.status}</span>
             )}
