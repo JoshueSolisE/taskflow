@@ -1,6 +1,7 @@
 
-import { useEffect, useState } from 'react'
-import { getProjects, getProjectTasks } from './services/api'
+import { Fragment, useEffect, useState } from 'react'
+import { createTask, deleteTask, getProjects, getProjectTasks, updateTask } from './services/api'
+import type { CreateTaskInput, UpdateTaskInput } from './services/api'
 import type { Project, Task as ApiTask } from './types/task'
 import './App.css'
 
@@ -17,10 +18,13 @@ type Filter = 'All' | DisplayTaskStatus
 type DashboardTask = {
   id: string
   title: string
+  description: string
+  projectId: string
   project: string
   status: DisplayTaskStatus
   priority: DisplayPriority
   dueDate: string
+  dueDateISO: string
 }
 
 type DashboardProject = {
@@ -61,6 +65,17 @@ function formatDueDate(dueDate: string | null): string {
 }
 
 function App() {
+  const [showCreateForm, setShowCreateForm] = useState(false)
+  const [selectedProjectId, setSelectedProjectId] = useState('')
+  const [newTaskTitle, setNewTaskTitle] = useState('')
+  const [newTaskDescription, setNewTaskDescription] = useState('')
+  const [newTaskStatus, setNewTaskStatus] =
+    useState<CreateTaskInput['status']>('TODO')
+  const [newTaskPriority, setNewTaskPriority] =
+    useState<CreateTaskInput['priority']>('MEDIUM')
+  const [newTaskDueDate, setNewTaskDueDate] = useState('')
+  const [creatingTask, setCreatingTask] = useState(false)
+  const [createTaskError, setCreateTaskError] = useState<string | null>(null)
   const [health, setHealth] = useState<HealthResponse | null>(null)
   const [apiError, setApiError] = useState(false)
   const [filter, setFilter] = useState<Filter>('All')
@@ -68,6 +83,19 @@ function App() {
   const [tasks, setTasks] = useState<DashboardTask[]>([])
   const [loadingTasks, setLoadingTasks] = useState(true)
   const [tasksError, setTasksError] = useState<string | null>(null)
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
+  const [editTaskTitle, setEditTaskTitle] = useState('')
+  const [editTaskDescription, setEditTaskDescription] = useState('')
+  const [editTaskStatus, setEditTaskStatus] =
+    useState<CreateTaskInput['status']>('TODO')
+  const [editTaskPriority, setEditTaskPriority] =
+    useState<CreateTaskInput['priority']>('MEDIUM')
+  const [editTaskDueDate, setEditTaskDueDate] = useState('')
+  const [updatingTask, setUpdatingTask] = useState(false)
+  const [updateTaskError, setUpdateTaskError] = useState<string | null>(null)
+  const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null)
+  const [deletingTaskError, setDeletingTaskError] = useState<string | null>(null)
+
 
   useEffect(() => {
     const controller = new AbortController()
@@ -123,13 +151,18 @@ function App() {
         const dashboardTasks: DashboardTask[] = results.flatMap(
           ({ tasks: projectTasks }) => 
             projectTasks.map((task: ApiTask) => ({
-              id: task.id,
-              title: task.title,
-              project: projectNames.get(task.projectId) ?? 'Unknown Proyect',
-              status: mapStatus(task.status),
-              priority: mapPriority(task.priority),
-              dueDate: formatDueDate(task.dueDate),
-            })),
+            id: task.id,
+            title: task.title,
+            description: task.description ?? '',
+            projectId: task.projectId,
+            project: projectNames.get(task.projectId) ?? 'Unknown Project',
+            status: mapStatus(task.status),
+            priority: mapPriority(task.priority),
+            dueDate: formatDueDate(task.dueDate),
+            dueDateISO: task.dueDate
+              ? task.dueDate.slice(0, 10)
+              : '',
+          })),
         )
 
         const dashboardProjects: DashboardProject[] = results.map(
@@ -172,6 +205,245 @@ function App() {
       active = false
     }
   }, [])
+
+  async function handleCreateTask(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    const title = newTaskTitle.trim()
+
+    if (!title) {
+      setCreateTaskError('Task title is required.')
+      return
+    }
+
+    if (!selectedProjectId) {
+      setCreateTaskError('Please select a project.')
+      return
+    }
+
+    const input: CreateTaskInput = {
+      title,
+      description: newTaskDescription.trim() || undefined,
+      status: newTaskStatus,
+      priority: newTaskPriority,
+      dueDate: newTaskDueDate
+        ? new Date(`${newTaskDueDate}T12:00:00`).toISOString()
+        : undefined,
+    }
+
+    try {
+      setCreatingTask(true)
+      setCreateTaskError(null)
+
+      const createdTask = await createTask(selectedProjectId, input)
+      const selectedProject = projects.find(
+        (project) => project.id === selectedProjectId,
+      )
+
+      const dashboardTask: DashboardTask = {
+        id: createdTask.id,
+        title: createdTask.title,
+        description: createdTask.description ?? '',
+        projectId: createdTask.projectId,
+        project: selectedProject?.name ?? 'Unknown Project',
+        status: mapStatus(createdTask.status),
+        priority: mapPriority(createdTask.priority),
+        dueDate: formatDueDate(createdTask.dueDate),
+        dueDateISO: createdTask.dueDate
+          ? createdTask.dueDate.slice(0, 10)
+          : '',
+      }
+
+      setTasks((currentTasks) => [dashboardTask, ...currentTasks])
+
+      setProjects((currentProjects) =>
+        currentProjects.map((project) => {
+          if (project.id !== selectedProjectId) return project
+
+          const projectTasks = [
+            ...tasks.filter((task) => task.project === project.name),
+            dashboardTask,
+          ]
+          const completed = projectTasks.filter(
+            (task) => task.status === 'Done',
+          ).length
+
+          return {
+            ...project,
+            progress: Math.round((completed / projectTasks.length) * 100),
+          }
+        }),
+      )
+
+      setNewTaskTitle('')
+      setNewTaskDescription('')
+      setNewTaskStatus('TODO')
+      setNewTaskPriority('MEDIUM')
+      setNewTaskDueDate('')
+      setShowCreateForm(false)
+    } catch (error) {
+      setCreateTaskError(
+        error instanceof Error ? error.message: 'Could not create task.',
+      )
+    } finally {
+      setCreatingTask(false)
+    }
+  }
+
+  function startEditingTask(task: DashboardTask) {
+    setEditingTaskId(task.id)
+    setEditTaskTitle(task.title)
+    setEditTaskDescription(task.description)
+    setEditTaskStatus(
+      task.status === 'Pending'
+        ? 'TODO'
+        : task.status === 'In Progress'
+          ? 'IN_PROGRESS'
+          : 'DONE',
+    )
+    setEditTaskPriority(
+      task.priority === 'High'
+        ? 'HIGH'
+        : task.priority === 'Medium'
+          ? 'MEDIUM'
+          : 'LOW',
+    )
+    setEditTaskDueDate(task.dueDateISO)
+    setUpdateTaskError(null)
+  }
+
+  async function handleUpdateTask(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    if (!editingTaskId) return
+
+    const title = editTaskTitle.trim()
+
+    if (!title) {
+      setUpdateTaskError('Task title is required.')
+      return
+    }
+
+    const input: UpdateTaskInput = {
+      title,
+      description: editTaskDescription.trim(),
+      status: editTaskStatus,
+      priority: editTaskPriority,
+      dueDate: editTaskDueDate
+        ? new Date(`${editTaskDueDate}T12:00:00`).toISOString()
+        : undefined,
+    }
+
+    try {
+      setUpdatingTask(true)
+      setUpdateTaskError(null)
+
+      const updatedTask = await updateTask(editingTaskId, input)
+
+      setTasks((currentTasks) =>
+        currentTasks.map((task) =>
+          task.id === updatedTask.id
+            ? {
+                ...task,
+                title: updatedTask.title,
+                description: updatedTask.description ?? '',
+                projectId: updatedTask.projectId,
+                status: mapStatus(updatedTask.status),
+                priority: mapPriority(updatedTask.priority),
+                dueDate: formatDueDate(updatedTask.dueDate),
+                dueDateISO: updatedTask.dueDate
+                  ? updatedTask.dueDate.slice(0, 10)
+                  : '',
+              }
+            : task,
+        ),
+      )
+
+      const updatedStatuses = new Map(
+        tasks.map((task) => [task.id, task.status]),
+      )
+      updatedStatuses.set(updatedTask.id, mapStatus(updatedTask.status))
+
+      setProjects((currentProjects) =>
+        currentProjects.map((project) => {
+          const projectTasks = tasks.filter(
+            (task) => task.projectId === project.id,
+          )
+
+          const completed = projectTasks.filter(
+            (task) => updatedStatuses.get(task.id) === 'Done',
+          ).length
+
+          return {
+            ...project,
+            progress: projectTasks.length
+              ? Math.round((completed / projectTasks.length) * 100)
+              : 0,
+          }
+        }),
+      )
+
+      setEditingTaskId(null)
+    } catch (error) {
+      setUpdateTaskError(
+        error instanceof Error ? error.message : 'Could not update task.',
+      )
+    } finally {
+      setUpdatingTask(false)
+    }
+  }
+
+  async function handleDeleteTask(task: DashboardTask) {
+    const  confirmed = window.confirm(
+      `Are you sure you wnat to delete "${task.title}"?. This action cannot be undone`,
+    )
+    
+    if (!confirmed) return
+
+    try {
+      setDeletingTaskId(task.id)
+      setDeletingTaskError(null)
+
+      await deleteTask(task.id)
+
+      const remainingTasks = tasks.filter(
+        (currentTask) => currentTask.id !== task.id
+      )
+
+      setTasks(remainingTasks)
+
+      setProjects((currentProjects) =>
+        currentProjects.map((project) => {
+          const projectTasks = remainingTasks.filter(
+            (currentTask) => currentTask.projectId === project.id,
+          )
+
+          const completedTasks = projectTasks.filter(
+            (currentTask) => currentTask.status === 'Done',
+          ).length
+
+          return {
+            ...project,
+            progress:
+              projectTasks.length > 0
+                ? Math.round((completedTasks / projectTasks.length) * 100)
+                : 0,
+          }
+        }),
+      )
+
+      if  (editingTaskId === task.id) {
+        setEditingTaskId(null)
+      }
+
+    } catch (error) {
+      setDeletingTaskError(
+        error instanceof Error ? error.message : 'Could not delete task',
+      )
+    } finally {
+      setDeletingTaskId(null)
+    }
+  }
 
   const filteredTasks =
     filter === 'All'
@@ -338,8 +610,129 @@ function App() {
                 <h2>Recent tasks</h2>
                 <p className="muted">Keep up the pace and keep moving forward.</p>
               </div>
+              <button
+                type="button"
+                className="primary-button"
+                onClick={() => {
+                  setCreateTaskError(null)
+                  setSelectedProjectId((current) => current || projects[0]?.id || '')
+                  setShowCreateForm((current) => !current)
+                }}
+                disabled={projects.length === 0}
+              >
+                + New Task
+              </button>
             </div>
+            {showCreateForm && (
+              <form className="task-form" onSubmit={handleCreateTask}>
+                <h3>Create Task</h3>
 
+                <label>
+                  Project
+                  <select
+                    value={selectedProjectId}
+                    onChange={(event) => setSelectedProjectId(event.target.value)}
+                    required
+                  >
+                    <option value="">Select a project</option>
+                    {projects.map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label>
+                  Title
+                  <input
+                    value={newTaskTitle}
+                    onChange={(event) => setNewTaskTitle(event.target.value)}
+                    maxLength={200}
+                    required
+                    placeholder="e.g. Implement login"
+                  />
+                </label>
+
+                <label>
+                  Description
+                  <textarea
+                    value={newTaskDescription}
+                    onChange={(event) => setNewTaskDescription(event.target.value)}
+                    maxLength={2000}
+                    rows={3}
+                    placeholder="Describe the task..."
+                  />
+                </label>
+
+                <div className="task-form-grid">
+                  <label>
+                    Status
+                    <select
+                      value={newTaskStatus}
+                      onChange={(event) =>
+                        setNewTaskStatus(event.target.value as CreateTaskInput['status'])
+                      }
+                    >
+                      <option value="TODO">Pending</option>
+                      <option value="IN_PROGRESS">In Progress</option>
+                      <option value="DONE">Done</option>
+                    </select>
+                  </label>
+
+                  <label>
+                    Priority
+                    <select
+                      value={newTaskPriority}
+                      onChange={(event) =>
+                        setNewTaskPriority(event.target.value as CreateTaskInput['priority'])
+                      }
+                    >
+                      <option value="LOW">Low</option>
+                      <option value="MEDIUM">Medium</option>
+                      <option value="HIGH">High</option>
+                    </select>
+                  </label>
+                </div>
+
+                <label>
+                  Due Date
+                  <input
+                    type="date"
+                    value={newTaskDueDate}
+                    onChange={(event) => setNewTaskDueDate(event.target.value)}
+                  />
+                </label>
+
+                {createTaskError && (
+                  <p className="form-error" role="alert">
+                    {createTaskError}
+                  </p>
+                )}
+
+                <div className="task-form-actions">
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={() => {
+                      setShowCreateForm(false)
+                      setCreateTaskError(null)
+                    }}
+                    disabled={creatingTask}
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="submit"
+                    className="primary-button"
+                    disabled={creatingTask || projects.length === 0}
+                  >
+                    {creatingTask ? 'Creating...' : 'Create Task'}
+                  </button>
+                </div>
+              </form>
+            )}
             <div className="task-filters" aria-label="Filtrar tareas">
               {(['All', 'Pending', 'In Progress', 'Done'] as Filter[]).map(
                 (option) => (
@@ -363,30 +756,145 @@ function App() {
               <p role="alert" className="empty-state">
                 Your tasks couldn't be loaded  {tasksError}
               </p>
-            )}  
+            )}
+            {deletingTaskError && (
+              <p className='form-error' role='alert'>
+                {deletingTaskError}
+              </p>
+            )}
             <div className="task-list">
               {filteredTasks.map((task) => (
-                <article className="task-row" key={task.id}>
-                  <span
-                    className={`task-check ${task.status === 'Done' ? 'checked' : ''}`}
-                    aria-hidden="true"
-                  >
-                    {task.status === 'Done' ? '✓' : ''}
-                  </span>
-                  <div className="task-info">
-                    <strong className={task.status === 'Done' ? 'task-done' : ''}>
-                      {task.title}
-                    </strong>
-                    <span>{task.project}</span>
-                  </div>
-                  <span className={`priority priority-${task.priority.toLowerCase()}`}>
-                    {task.priority}
-                  </span>
-                  <span className={`task-status status-${task.status.toLowerCase().replace(' ', '-')}`}>
-                    {task.status}
-                  </span>
-                  <span className="task-date">{task.dueDate}</span>
-                </article>
+                <Fragment>
+                  <article className="task-row" key={task.id}>
+                    <span
+                      className={`task-check ${task.status === 'Done' ? 'checked' : ''}`}
+                      aria-hidden="true"
+                    >
+                      {task.status === 'Done' ? '✓' : ''}
+                    </span>
+                    <div className="task-info">
+                      <strong className={task.status === 'Done' ? 'task-done' : ''}>
+                        {task.title}
+                      </strong>
+                      <span>{task.project}</span>
+                    </div>
+                    <span className={`priority priority-${task.priority.toLowerCase()}`}>
+                      {task.priority}
+                    </span>
+                    <span className={`task-status status-${task.status.toLowerCase().replace(' ', '-')}`}>
+                      {task.status}
+                    </span>
+                    <span className="task-date">{task.dueDate}</span>
+                    <button
+                      type="button"
+                      className="secondary-button"
+                      onClick={() => startEditingTask(task)}
+                      disabled={updatingTask}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type='button'
+                      className='secondary-button'
+                      onClick={() => void handleDeleteTask(task)}
+                      disabled={deletingTaskId != null || updatingTask}
+                    >
+                      { deletingTaskId === task.id ? 'Deleting...' : 'Delete'}
+                    </button>
+                  </article>
+                  {editingTaskId === task.id && (
+                    <form className="task-form" onSubmit={handleUpdateTask}>
+                      <h3>Edit Task</h3>
+
+                      <label>
+                        Title
+                        <input
+                          value={editTaskTitle}
+                          onChange={(event) => setEditTaskTitle(event.target.value)}
+                          maxLength={200}
+                          required
+                        />
+                      </label>
+
+                      <label>
+                        Description
+                        <textarea
+                          value={editTaskDescription}
+                          onChange={(event) => setEditTaskDescription(event.target.value)}
+                          maxLength={2000}
+                          rows={3}
+                        />
+                      </label>
+
+                      <div className="task-form-grid">
+                        <label>
+                          Status
+                          <select
+                            value={editTaskStatus}
+                            onChange={(event) =>
+                              setEditTaskStatus(event.target.value as CreateTaskInput['status'])
+                            }
+                          >
+                            <option value="TODO">Pending</option>
+                            <option value="IN_PROGRESS">In Progress</option>
+                            <option value="DONE">Done</option>
+                          </select>
+                        </label>
+
+                        <label>
+                          Priority
+                          <select
+                            value={editTaskPriority}
+                            onChange={(event) =>
+                              setEditTaskPriority(event.target.value as CreateTaskInput['priority'])
+                            }
+                          >
+                            <option value="LOW">Low</option>
+                            <option value="MEDIUM">Medium</option>
+                            <option value="HIGH">High</option>
+                          </select>
+                        </label>
+                      </div>
+
+                      <label>
+                        Due Date
+                        <input
+                          type="date"
+                          value={editTaskDueDate}
+                          onChange={(event) => setEditTaskDueDate(event.target.value)}
+                        />
+                      </label>
+
+                      {updateTaskError && (
+                        <p className="form-error" role="alert">
+                          {updateTaskError}
+                        </p>
+                      )}
+
+                      <div className="task-form-actions">
+                        <button
+                          type="button"
+                          className="secondary-button"
+                          onClick={() => {
+                            setEditingTaskId(null)
+                            setUpdateTaskError(null)
+                          }}
+                          disabled={updatingTask}
+                        >
+                          Cancel
+                        </button>
+
+                        <button
+                          type="submit"
+                          className="primary-button"
+                          disabled={updatingTask}
+                        >
+                          {updatingTask ? 'Saving...' : 'Save Changes'}
+                        </button>
+                      </div>
+                    </form>
+                  )}
+                </Fragment>
               ))}
 
               {!loadingTasks && !tasksError && filteredTasks.length === 0 && (
