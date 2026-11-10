@@ -4,3 +4,9 @@ dist/
 .env.*
 !.env.example
 coverage/
+
+# Playwright artifacts
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
