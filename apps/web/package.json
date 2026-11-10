@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test:e2e": "playwright test"
+    "test:API": "playwright test --config=playwright.api.config.ts",
+    "test:UI": "playwright test --config=playwright.config.ts"
   },
   "dependencies": {
     "react": "^19.3.1",
