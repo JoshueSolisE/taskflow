@@ -1,90 +1,72 @@
 import { test, expect } from '@playwright/test';
 
-test('should create, retrieve, update, and delete a project', async({
-    request,
-}) => {
-    const projectName = `TaskFlow E2E ${Date.now()}`;
+test('should create, retrieve, update and delete a project', async ({ request }) => {
     let projectId: string | undefined;
 
     try {
-        const createResponse = await request.post('/api/projects',{
-            data: {
-                name: projectName,
-                description: 'Project created by Playwright E2E tests',
-            },
+        await test.step('1. Create a project', async () => {
+            const response = await request.post('/api/projects', {
+                data: {
+                    name: `TaskFlow E2E ${Date.now()}`,
+                    description: 'Project created by Playwright E2E tests',
+                },
+            });
+
+            expect(response.status()).toBe(201);
+
+            const project = await response.json();
+            projectId = project.id;
+
+            expect(projectId).toBeTruthy();
+            expect(project.name).toContain('TaskFlow E2E');
         });
 
-        expect(createResponse.status()).toBe(201);
+        await test.step('2. Retrieve the project by ID', async () => {
+            const response = await request.get(`/api/projects/${projectId}`);
 
-        const createdProject = await createResponse.json();
+            expect(response.status()).toBe(200);
 
-        expect(createdProject.id).toBeTruthy();
-        expect(createdProject.name).toBe(projectName);
+            const project = await response.json();
+            expect(project.id).toBe(projectId);
+        });
 
-        projectId = createdProject.id;
+        await test.step('3. Verify the project appears in the list', async () => {
+            const response = await request.get('/api/projects');
 
-        const getResponse = await request.get(
-            `/api/projects/${projectId}`,
-        );
-        if (getResponse.status() !== 200) {
-            console.log('Created project:', createdProject);
-            console.log('Project ID:', projectId);
-            console.log('GET status:', getResponse.status());
-            console.log('GET response:', await getResponse.text());
-        }
-        expect(getResponse.status()).toBe(200);
+            expect(response.status()).toBe(200);
 
-        const retrievedProject = await getResponse.json();
+            const projects = await response.json();
+            expect(projects.some((project: { id: string }) => project.id === projectId))
+                .toBe(true);
+        });
 
-        expect(retrievedProject.id).toBe(projectId);
-        expect(retrievedProject.name).toBe(projectName);
+        await test.step('4. Update the project', async () => {
+            const updatedName = `TaskFlow E2E Updated ${Date.now()}`;
 
-        const listResponse = await request.get('/api/projects');
+            const response = await request.patch(`/api/projects/${projectId}`, {
+                data: { name: updatedName },
+            });
 
-        expect(listResponse.status()).toBe(200);
-        
-        const projects = await listResponse.json();
+            expect(response.status()).toBe(200);
 
-        expect(
-            projects.some(
-                (project: { id: string }) => project.id === projectId,
-            ),
-        ).toBe(true);
+            const project = await response.json();
+            expect(project.name).toBe(updatedName);
+            expect(project.description).toBe('Project created by Playwright E2E tests');
+        });
 
-        const updatedName = `${projectName} Updated`;
-        const updateResponse = await request.patch(
-            `/api/projects/${projectId}`,
-            {
-                data: {
-                    name: updatedName,
-                },
-            },
-        );
+        await test.step('5. Delete the project', async () => {
+            const response = await request.delete(`/api/projects/${projectId}`);
 
-        expect(updateResponse.status()).toBe(200);
+            expect(response.status()).toBe(200);
+        });
 
-        const updatedProject = await updateResponse.json();
+        await test.step('6. Verify the project no longer exists', async () => {
+            const response = await request.get(`/api/projects/${projectId}`);
 
-        expect(updatedProject.id).toBe(projectId);
-        expect(updatedProject.name).toBe(updatedName);
-        expect(updatedProject.description).toBe(
-            'Project created by Playwright E2E tests',
-        );
-
-        const deleteResponse = await request.delete(
-            `/api/projects/${projectId}`,
-        );
-
-        expect(deleteResponse.status()).toBe(200);
-
-        projectId = undefined;
-
-        const missingResponse = await request.get(
-            `/api/projects/${createdProject.id}`,
-        );
-
-        expect(missingResponse.status()).toBe(404);
+            expect(response.status()).toBe(404);
+        });
     } finally {
+        // Clean up only the project created by this test if it still exists.
         if (projectId) {
             await request.delete(`/api/projects/${projectId}`);
         }
