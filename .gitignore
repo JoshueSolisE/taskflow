@@ -10,3 +10,16 @@ test-results/
 playwright-report/
 blob-report/
 playwright/.cache/
+
+# Playwright reports
+/apps/web/playwright-report-ui/
+/apps/web/playwright-report-api/
+
+# Playwright test artifacts
+/apps/web/test-results-ui/
+/apps/web/test-results-api/
+
+# Default Playwright output directories, if used
+/apps/web/playwright-report/
+/apps/web/test-results/
+/apps/web/playwright/.cache/
