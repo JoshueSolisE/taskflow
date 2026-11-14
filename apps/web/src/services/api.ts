@@ -38,6 +38,16 @@ export function getProjects(
     return request<Project[]>('/projects', options)
 }
 
+export function getProject(
+    projectId: string,
+    options?: RequestInit,
+): Promise<Project> {
+    return request<Project>(
+        `/projects/${encodeURIComponent(projectId)}`,
+        options,
+    )
+}
+
 export function createProject(
     input: CreateProjectInput,
 ): Promise<Project> {
