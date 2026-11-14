@@ -25,8 +25,10 @@ async function request<T>(
     return response.json() as Promise<T>
 }
 
-export function getProjects(): Promise<Project[]> {
-    return request<Project[]>('/projects')
+export function getProjects(
+    options?: RequestInit,
+): Promise<Project[]> {
+    return request<Project[]>('/projects', options)
 }
 
 export function getProjectTasks(projectId: string): Promise<Task[]> {
