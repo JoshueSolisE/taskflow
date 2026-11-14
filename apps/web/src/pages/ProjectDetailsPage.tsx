@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router'
 import {
     createTask,
+    deleteTask,
     getProject,
     getProjectTasks,
     updateTask,
@@ -21,6 +22,7 @@ export default function ProjectDetailsPage() {
     const [success, setSuccess] = useState<string | null>(null)
 
     const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
+    const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null) 
 
     const [title, setTitle] = useState('')
     const [description, setDescription] = useState('')
@@ -133,6 +135,40 @@ export default function ProjectDetailsPage() {
         }
     }
 
+    async function handleDeleteTask(task: Task) {
+        const confirmed = window.confirm(
+            `Are you sure you want to delete "${task.title}"?`,
+        )
+
+        if (!confirmed) return
+
+        setDeletingTaskId(task.id)
+        setError(null)
+        setSuccess(null)
+
+        try {
+            await deleteTask(task.id)
+
+            setTasks((currentTasks) => 
+                currentTasks.filter((currentTasks) => currentTasks.id !== task.id),
+            )
+
+            if (editingTaskId === task.id) {
+                resetForm()
+            }
+
+            setSuccess('The task was deleted successfully.')
+        } catch (err: unknown) {
+            setError(
+                err instanceof Error
+                    ? err.message
+                    : 'The task could not be deleted.',
+            )
+        } finally {
+            setDeletingTaskId(null)
+        }
+    }
+
     if (!projectId) {
         return (
             <section>
@@ -241,7 +277,9 @@ export default function ProjectDetailsPage() {
                     />
                 </div>
 
-                <button type="submit" disabled={isSaving}>
+                <button
+                    type="submit"
+                    disabled={isSaving}>
                     {isSaving
                         ? 'Saving...'
                         : editingTaskId !== null
@@ -289,9 +327,17 @@ export default function ProjectDetailsPage() {
                             <button
                                 type='button'
                                 onClick={() => handleEditTask(task)}
-                                disabled={isSaving}
+                                disabled={isSaving || deletingTaskId !== null}
                             >
                                 Edit
+                            </button>
+
+                            <button
+                                type='button'
+                                onClick={() => handleDeleteTask(task)}
+                                disabled={isSaving || deletingTaskId !== null}
+                            >
+                                {deletingTaskId === task.id ? 'Deleting...' : 'Delete'}
                             </button>
                         </li>
                     ))}
