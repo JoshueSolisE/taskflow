@@ -1,41 +1,158 @@
 import { useEffect, useState } from "react"
 import { Link } from 'react-router'
-import { getProjects } from '../services/api'
+import { 
+    createProject,
+    deleteProject,
+    getProjects,
+    updateProject,
+} from '../services/api'
 import type { Project } from '../types/task'
 
 export default function ProjectsPages() {
     const [projects, setProjects] = useState<Project[]>([])
     const [isLoading, setIsLoading] = useState(true)
+    const [isSaving, setIsSaving] = useState(false)
+    const [deletingId, setDeletingId] = useState<string | null>(null)
+
+    const [editingProject, setEditingProject] = useState<Project |null>(null)
+    const [showForm, setShowForm] = useState(false)
+    const [name, setName] = useState('')
+    const [description, setDescription] = useState('')
+
     const [error, setError] = useState<string | null>(null)
-    
+    const [success, setSuccess] = useState<string | null>(null)
+
+    async function loadProjects() {
+        try {
+            setError(null)
+            const data = await getProjects()
+            setProjects(data)
+        } catch {
+            setError('No se pudieron cargar los proyectos.')
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
     useEffect(() => {
         const controller = new AbortController()
 
-        async function loadProjects() {
-            try {
-                setIsLoading(true)
-                setError(null)
-
-                const data = await getProjects({
-                    signal: controller.signal,
-                })
-
-                setProjects(data)
-            } catch {
+        getProjects({ signal: controller.signal })
+            .then((data) => {
                 if (!controller.signal.aborted) {
-                    setError('Projects cannot be loaded.')
+                    setProjects(data)
                 }
-            } finally {
+            })
+            .catch(() => {
+                if (!controller.signal.aborted) {
+                    setError('No se pudieron cargar los proyectos.')
+                }
+            })
+            .finally(() => {
                 if (!controller.signal.aborted) {
                     setIsLoading(false)
                 }
-            }
-        }
-
-        void loadProjects()
+            })
 
         return () => controller.abort()
     }, [])
+
+    function openCreateForm() {
+        setEditingProject(null)
+        setName('')
+        setDescription('')
+        setError(null)
+        setSuccess(null)
+        setShowForm(true)
+    }
+
+    function openEditForm(project: Project) {
+        setEditingProject(project)
+        setName(project.name)
+        setDescription(project.description ?? '')
+        setError(null)
+        setSuccess(null)
+        setShowForm(true)
+    }
+
+    function closeForm() {
+        setShowForm(false)
+        setEditingProject(null)
+        setName('')
+        setDescription('')
+    }
+
+    async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+        event.preventDefault()
+
+        const trimmedName = name.trim()
+        const trimmedDescription = description.trim()
+
+        if (!trimmedName) {
+            setError('Name for the project is required.')
+            return
+        }
+
+        setIsSaving(true)
+        setError(null)
+        setSuccess(null)
+
+        try {
+            const input = {
+                name: trimmedName,
+                description: trimmedDescription || undefined,
+            }
+
+            if (editingProject) {
+                await updateProject(editingProject.id, input)
+                setSuccess('project updated successfully.')
+            } else {
+                await createProject(input)
+                setSuccess('Project created successfully')
+            }
+
+            closeForm()
+            await loadProjects()
+        } catch {
+            setError(
+                editingProject
+                    ? 'Porject cannot be updated'
+                    : 'Project cannot be created',
+            )
+        } finally {
+            setIsSaving(false)
+        }
+    }
+    
+    async function handleDelete(project: Project) {
+        const confirmed = window.confirm(
+            `Arew you sure that you want to delete this project: "${project.name}"?`,
+        )
+
+        if (!confirmed) {
+            return
+        }
+
+        setDeletingId(project.id)
+        setError(null)
+        setSuccess(null)
+
+        try {
+            await deleteProject(project.id)
+            setProjects((current) =>
+                current.filter((item) => item.id !== project.id),
+            )
+            setSuccess('Proyecto eliminado correctamente.')
+
+            if (editingProject?.id === project.id) {
+                closeForm()
+            }
+        } catch {
+            setError('No se pudo eliminar el proyecto.')
+        } finally {
+            setDeletingId(null)
+        }
+    }
 
     return (
         <main className="main-content">
@@ -44,23 +161,77 @@ export default function ProjectsPages() {
                     <h1>Projects</h1>
                     <p>Manage and organize your projects.</p>
                 </div>
+                <button type="button" onClick={openCreateForm}>
+                    New Project
+                </button>
             </header>
+
+            {error && <p role="alert">{error}</p>}
+            {success && <p role="status">{success}</p>}
+
+            {showForm && (
+                <section aria-label="Projects form">
+                    <h2>
+                        {editingProject
+                            ? 'Edit project'
+                            : 'Create project'}
+                    </h2>
+
+                    <form onSubmit={handleSubmit}>
+                        <div>
+                            <label htmlFor="project-name">
+                                Name
+                            </label>
+                            <input
+                                id="project-name"
+                                name="name"
+                                value={name}
+                                onChange={(event) =>
+                                    setName(event.target.value)
+                                }
+                                maxLength={120}
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <label htmlFor="project-description">
+                                Description
+                            </label>
+                            <textarea
+                                id="project-description"
+                                name="description"
+                                value={description}
+                                onChange={(event) =>
+                                    setDescription(event.target.value)
+                                }
+                                maxLength={2000}
+                                rows={4}
+                            />
+                        </div>
+
+                        <button type="submit" disabled={isSaving}>
+                            {isSaving
+                                ? 'Loading...'
+                                : editingProject
+                                    ? 'Load changes'
+                                    : 'Create project'}
+                        </button>
+
+                        <button 
+                            type="button"
+                            onClick={closeForm}
+                            disabled={isSaving}
+                        >
+                            Cancel
+                        </button>
+                    </form>
+                </section>
+            )}
 
             <section aria-label="Projects list">
                 {isLoading && (
                     <p role="status">Loading projects...</p>
-                )}
-
-                {!isLoading && error && (
-                    <div role="alert">
-                        <p>{error}</p>
-                        <button
-                            type="button"
-                            onClick={() => window.location.reload()}
-                        >
-                            Retry
-                        </button>
-                    </div>
                 )}
 
                 {!isLoading && !error && projects.length === 0 && (
@@ -81,7 +252,7 @@ export default function ProjectsPages() {
 
                                 <p>
                                     {project.description ||
-                                    'No description.'}
+                                        'N/A description.'}
                                 </p>
 
                                 <small>
@@ -91,11 +262,36 @@ export default function ProjectsPages() {
                                     ).toLocaleDateString()}
                                 </small>
 
-                                <Link
-                                    to={`/projects/${project.id}`}
-                                >
-                                    See project
-                                </Link>
+                                <div>
+                                    <Link
+                                        to={`/projects/${project.id}`}
+                                    >
+                                        See project
+                                    </Link>
+
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            openEditForm(project)
+                                        }
+                                    >
+                                        Edit
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            void handleDelete(project)
+                                        }
+                                        disabled={
+                                            deletingId === project.id
+                                        }
+                                    >
+                                        {deletingId === project.id
+                                            ? 'Deleting...'
+                                            : 'Delete'}
+                                    </button>
+                                </div>
                             </article>
                         ))}
                     </div>

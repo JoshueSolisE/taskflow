@@ -1,6 +1,13 @@
 import type { Project, Task } from '../types/task'
 import type { TaskPriority, TaskStatus } from '../types/task'
 
+export interface CreateProjectInput {
+    name: string
+    description?: string
+}
+
+export type UpdateProjectInput = Partial<CreateProjectInput>
+
 export interface CreateTaskInput {
     title: string
     description?: string
@@ -29,6 +36,43 @@ export function getProjects(
     options?: RequestInit,
 ): Promise<Project[]> {
     return request<Project[]>('/projects', options)
+}
+
+export function createProject(
+    input: CreateProjectInput,
+): Promise<Project> {
+    return request<Project>('/projects', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(input),
+    })
+}
+
+export function updateProject(
+    projectId: string,
+    input: UpdateProjectInput,
+): Promise<Project> {
+    return request<Project>(
+        `/projects/${encodeURIComponent(projectId)}`,
+        {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(input),
+        },
+    )
+}
+
+export function deleteProject(projectId: string): Promise<void> {
+    return request<void>(
+        `/projects/${encodeURIComponent(projectId)}`,
+        {
+            method: 'DELETE',
+        },
+    )
 }
 
 export function getProjectTasks(projectId: string): Promise<Task[]> {
