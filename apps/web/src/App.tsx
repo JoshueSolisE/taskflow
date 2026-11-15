@@ -64,7 +64,7 @@ function mapPriority(priority: ApiTask["priority"]): DisplayPriority {
 function formatDueDate(dueDate: string | null): string {
   if (!dueDate) return "No Date";
 
-  return new Intl.DateTimeFormat("es-MX", {
+  return new Intl.DateTimeFormat("en-US", {
     day: "numeric",
     month: "short",
   }).format(new Date(dueDate));
@@ -369,7 +369,7 @@ function App() {
 
   async function handleDeleteTask(task: DashboardTask) {
     const confirmed = window.confirm(
-      `Are you sure you wnat to delete "${task.title}"?. This action cannot be undone`,
+      `Are you sure you want to delete "${task.title}"? This action cannot be undone.`,
     );
 
     if (!confirmed) return;
@@ -448,7 +448,7 @@ function App() {
             </p>
           </div>
           <span className="today-label">
-            {new Intl.DateTimeFormat("es-MX", {
+            {new Intl.DateTimeFormat("en-US", {
               day: "numeric",
               month: "short",
               year: "numeric",
@@ -463,12 +463,12 @@ function App() {
               <span className="stat-icon purple-icon">▤</span>
             </div>
             <strong className="stat-number">{tasks.length}</strong>
-            <span className="stat-caption">All Your Proyects</span>
+            <span className="stat-caption">Across all projects</span>
           </article>
 
           <article className="stat-card">
             <div className="stat-heading">
-              <span>Pendings</span>
+              <span>Pending tasks</span>
               <span className="stat-icon orange-icon">◷</span>
             </div>
             <strong className="stat-number">{pendingTasks}</strong>
@@ -477,7 +477,7 @@ function App() {
 
           <article className="stat-card">
             <div className="stat-heading">
-              <span>In Process</span>
+              <span>In Progress</span>
               <span className="stat-icon blue-icon">↗</span>
             </div>
             <strong className="stat-number">{inProgressTasks}</strong>
@@ -497,10 +497,10 @@ function App() {
         <section className="section-block" id="proyectos">
           <div className="section-heading">
             <div>
-              <h2>Your Proyects</h2>
+              <h2>Your Projects</h2>
               <p className="muted">A look at what you have underway.</p>
             </div>
-            <span className="section-count">{projects.length} proyects</span>
+            <span className="section-count">{projects.length} projects</span>
           </div>
 
           <div className="projects-grid">

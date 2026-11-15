@@ -1,3 +1,8 @@
+import {
+    LayoutDashboard,
+    FolderKanban,
+    CheckSquare,
+} from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet } from 'react-router'
 import '../App.css'
@@ -69,7 +74,12 @@ export default function AppLayout() {
                             `nav-item${isActive ? ' active' : ''}`
                         }
                     >
-                        <span aria-hidden='true'>▦</span>
+                        <LayoutDashboard
+                            className='nav-icon'
+                            size={18}
+                            strokeWidth={1.8}
+                            aria-hidden='true'
+                        />
                         Dashboard
                     </NavLink>
 
@@ -79,7 +89,12 @@ export default function AppLayout() {
                             `nav-item${isActive ? ' active' : ''}`
                         }
                     >
-                        <span aria-hidden='true'>▦</span>
+                        <FolderKanban
+                            className='nav-icon'
+                            size={18}
+                            strokeWidth={1.8}
+                            aria-hidden='true'
+                        />
                         Projects
                     </NavLink>
 
@@ -90,7 +105,12 @@ export default function AppLayout() {
                             `nav-item${isActive ? ' active' : ''}`
                         }
                     >
-                        <span aria-hidden='true'>▦</span>
+                        <CheckSquare
+                            className='nav-icon'
+                            size={18}
+                            strokeWidth={1.8}
+                            aria-hidden='true'
+                        />
                         Tasks
                     </NavLink>    
                 </nav>
