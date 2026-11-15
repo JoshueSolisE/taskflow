@@ -11,6 +11,16 @@ type HealthResponse = {
 export default function AppLayout() {
     const [health, setHealth] = useState<HealthResponse | null>(null)
     const [apiError, setApiError] = useState(false)
+    const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+        const savedTheme = localStorage.getItem('taskflow-theme')
+
+        return savedTheme === 'dark' ? 'dark' : 'light'
+    })
+
+    useEffect(() => {
+        document.documentElement.dataset.theme = theme
+        localStorage.setItem('taskflow-theme', theme)
+    }, [theme])
 
     useEffect(() => {
         const controller = new AbortController()
@@ -51,7 +61,7 @@ export default function AppLayout() {
 
                 <p className='nav-label'>Workspace</p>
 
-                <nav className='navigation' aria-label='Navegación principal'>
+                <nav className='navigation' aria-label='Primary navigation'>
                     <NavLink
                         to='/'
                         end
@@ -99,9 +109,32 @@ export default function AppLayout() {
                                     ? 'Conected'
                                     : apiError
                                         ? 'No Conected'
-                                        : 'Comprobando...'}
+                                        : 'Checking...'}
                             </small>
                         </div>
+                        <button
+                            type='button'
+                            className='theme-toggle'
+                            aria-label={
+                                theme === 'light'
+                                    ? 'Switch to dark theme'
+                                    : 'Switch to light theme'
+                            }
+                            title={
+                                theme === 'light'
+                                    ? 'Switch to dark theme'
+                                    : 'Switch to light theme'
+                            }
+                            onClick={() => 
+                                setTheme((current) =>
+                                    current === 'light' ? 'dark' : 'light'
+                                )
+                            }
+                        >
+                            <span aria-hidden='true'>
+                                {theme === 'light' ? '☾' : '☀'}
+                            </span>
+                        </button>
                     </div>
                     <p className='version-label'>TaskFlow · MVP v0.1</p>
                 </div>
