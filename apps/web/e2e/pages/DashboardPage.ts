@@ -12,7 +12,7 @@ export class DashboardPage {
         });
 
         this.taskSummary = page.getByRole('region', {
-            name: 'Resumen de tareas',
+            name: 'Task summary',
         });
 
         this.taskRows = page.locator('article.task-row');

@@ -9,6 +9,13 @@ import {
 } from "./services/api"
 import type { CreateTaskInput, UpdateTaskInput } from "./services/api"
 import type { Project, Task as ApiTask } from "./types/task"
+import {
+  Check,
+  CheckCircle2,
+  CircleDashed,
+  ClipboardList,
+  Clock3
+} from "lucide-react"
 import "./App.css"
 
 type HealthResponse = {
@@ -433,7 +440,7 @@ function App() {
     <main className="main-content" id="inicio">
       <header className="topbar">
         <span className="breadcrumb">Personal Space / Dashboard</span>
-        <span className="user-avatar" aria-label="Perfil de usuario">
+        <span className="user-avatar" aria-label="User profile">
           U
         </span>
       </header>
@@ -456,11 +463,17 @@ function App() {
           </span>
         </section>
 
-        <section className="stats-grid" aria-label="Resumen de tareas">
+        <section className="stats-grid" aria-label="Task summary">
           <article className="stat-card">
             <div className="stat-heading">
               <span>Total Tasks</span>
-              <span className="stat-icon purple-icon">▤</span>
+              <span className="stat-icon purple-icon">
+                <ClipboardList
+                  size={16}
+                  strokeWidth={1.8}
+                  aria-hidden="true"
+                />
+              </span>
             </div>
             <strong className="stat-number">{tasks.length}</strong>
             <span className="stat-caption">Across all projects</span>
@@ -469,7 +482,13 @@ function App() {
           <article className="stat-card">
             <div className="stat-heading">
               <span>Pending tasks</span>
-              <span className="stat-icon orange-icon">◷</span>
+              <span className="stat-icon orange-icon">
+                <CircleDashed
+                  size={16}
+                  strokeWidth={1.8}
+                  aria-hidden="true"
+                />
+              </span>
             </div>
             <strong className="stat-number">{pendingTasks}</strong>
             <span className="stat-caption">To begin with</span>
@@ -478,7 +497,13 @@ function App() {
           <article className="stat-card">
             <div className="stat-heading">
               <span>In Progress</span>
-              <span className="stat-icon blue-icon">↗</span>
+              <span className="stat-icon blue-icon">
+                <Clock3
+                  size={16}
+                  strokeWidth={1.8}
+                  aria-hidden="true"
+                />
+              </span>
             </div>
             <strong className="stat-number">{inProgressTasks}</strong>
             <span className="stat-caption">Currently underway</span>
@@ -487,7 +512,13 @@ function App() {
           <article className="stat-card">
             <div className="stat-heading">
               <span>Completed</span>
-              <span className="stat-icon green-icon">✓</span>
+              <span className="stat-icon green-icon">
+                <CheckCircle2
+                  size={16}
+                  strokeWidth={1.8}
+                  aria-hidden="true"
+                />
+              </span>
             </div>
             <strong className="stat-number">{completedTasks}</strong>
             <span className="stat-caption">Work completed</span>
@@ -518,7 +549,7 @@ function App() {
                 <div
                   className="progress-track"
                   role="progressbar"
-                  aria-label={`Progreso de ${project.name}`}
+                  aria-label={`Progress for ${project.name}`}
                   aria-valuenow={project.progress}
                   aria-valuemin={0}
                   aria-valuemax={100}
@@ -670,7 +701,7 @@ function App() {
               </div>
             </form>
           )}
-          <div className="task-filters" aria-label="Filtrar tareas">
+          <div className="task-filters" aria-label="Filter tasks">
             {(["All", "Pending", "In Progress", "Done"] as Filter[]).map(
               (option) => (
                 <button
@@ -699,13 +730,15 @@ function App() {
           )}
           <div className="task-list">
             {filteredTasks.map((task) => (
-              <Fragment>
-                <article className="task-row" key={task.id}>
+              <Fragment key={task.id}>
+                <article className="task-row">
                   <span
                     className={`task-check ${task.status === "Done" ? "checked" : ""}`}
                     aria-hidden="true"
                   >
-                    {task.status === "Done" ? "✓" : ""}
+                    {task.status === "Done" ? (
+                      <Check size={12} strokeWidth={2.5} aria-hidden='true'/>
+                    ) : null}
                   </span>
                   <div className="task-info">
                     <strong
@@ -858,7 +891,7 @@ function App() {
           Building TaskFlow step by step.
           {health && (
             <span>
-              {" "}
+              {" | "}
               API: {health.service} · {health.status}
             </span>
           )}
