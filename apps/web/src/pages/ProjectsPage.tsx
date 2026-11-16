@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react"
 import { Link } from 'react-router'
+import { useEffect, useState } from "react"
 import { 
     createProject,
     deleteProject,
@@ -156,147 +156,154 @@ export default function ProjectsPages() {
 
     return (
         <main className="main-content">
-            <header className="topbar">
-                <div>
-                    <h1>Projects</h1>
-                    <p>Manage and organize your projects.</p>
-                </div>
-                <button type="button" onClick={openCreateForm}>
-                    New Project
-                </button>
-            </header>
+            <div className='page-content'>
+                <header className="projects-page-header">
+                    <div className="projects-page-heading">
+                        <h1>Projects</h1>
+                        <p>Manage and organize your projects.</p>
+                    </div>
 
-            {error && <p role="alert">{error}</p>}
-            {success && <p role="status">{success}</p>}
+                    <button type='button' className="primary-button" onClick={openCreateForm}>
+                        New Project
+                    </button>
+                </header>
 
-            {showForm && (
-                <section aria-label="Projects form">
-                    <h2>
-                        {editingProject
-                            ? 'Edit project'
-                            : 'Create project'}
-                    </h2>
+                <div className="page-content">
+                    {error && <p role="alert">{error}</p>}
+                    {success && <p role="status">{success}</p>}
 
-                    <form onSubmit={handleSubmit}>
-                        <div>
-                            <label htmlFor="project-name">
-                                Name
-                            </label>
-                            <input
-                                id="project-name"
-                                name="name"
-                                value={name}
-                                onChange={(event) =>
-                                    setName(event.target.value)
-                                }
-                                maxLength={120}
-                                required
-                            />
-                        </div>
-
-                        <div>
-                            <label htmlFor="project-description">
-                                Description
-                            </label>
-                            <textarea
-                                id="project-description"
-                                name="description"
-                                value={description}
-                                onChange={(event) =>
-                                    setDescription(event.target.value)
-                                }
-                                maxLength={2000}
-                                rows={4}
-                            />
-                        </div>
-
-                        <button type="submit" disabled={isSaving}>
-                            {isSaving
-                                ? 'Loading...'
-                                : editingProject
-                                    ? 'Load changes'
+                    {showForm && (
+                        <section aria-label="Projects form">
+                            <h2>
+                                {editingProject
+                                    ? 'Edit project'
                                     : 'Create project'}
-                        </button>
+                            </h2>
 
-                        <button 
-                            type="button"
-                            onClick={closeForm}
-                            disabled={isSaving}
-                        >
-                            Cancel
-                        </button>
-                    </form>
-                </section>
-            )}
-
-            <section aria-label="Projects list">
-                {isLoading && (
-                    <p role="status">Loading projects...</p>
-                )}
-
-                {!isLoading && !error && projects.length === 0 && (
-                    <p>
-                        You don't have proyects yet. When you create a proyect,
-                        it should appear here. 
-                    </p>
-                )}
-
-                {!isLoading && !error && projects.length > 0 && (
-                    <div className="projects-grid">
-                        {projects.map((project) => (
-                            <article
-                                className="project-card"
-                                key={project.id}
-                            >
-                                <h2>{project.name}</h2>
-
-                                <p>
-                                    {project.description ||
-                                        'N/A description.'}
-                                </p>
-
-                                <small>
-                                    Created at {' '}
-                                    {new Date(
-                                        project.createdAt,
-                                    ).toLocaleDateString()}
-                                </small>
+                            <form onSubmit={handleSubmit}>
+                                <div>
+                                    <label htmlFor="project-name">
+                                        Name
+                                    </label>
+                                    <input
+                                        id="project-name"
+                                        name="name"
+                                        value={name}
+                                        onChange={(event) =>
+                                            setName(event.target.value)
+                                        }
+                                        maxLength={120}
+                                        required
+                                    />
+                                </div>
 
                                 <div>
-                                    <Link
-                                        to={`/projects/${project.id}`}
-                                    >
-                                        See project
-                                    </Link>
-
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            openEditForm(project)
+                                    <label htmlFor="project-description">
+                                        Description
+                                    </label>
+                                    <textarea
+                                        id="project-description"
+                                        name="description"
+                                        value={description}
+                                        onChange={(event) =>
+                                            setDescription(event.target.value)
                                         }
-                                    >
-                                        Edit
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            void handleDelete(project)
-                                        }
-                                        disabled={
-                                            deletingId === project.id
-                                        }
-                                    >
-                                        {deletingId === project.id
-                                            ? 'Deleting...'
-                                            : 'Delete'}
-                                    </button>
+                                        maxLength={2000}
+                                        rows={4}
+                                    />
                                 </div>
-                            </article>
-                        ))}
-                    </div>
-                )}
-            </section>
+
+                                <button type="submit" disabled={isSaving}>
+                                    {isSaving
+                                        ? 'Loading...'
+                                        : editingProject
+                                            ? 'Load changes'
+                                            : 'Create project'}
+                                </button>
+
+                                <button 
+                                    type="button"
+                                    onClick={closeForm}
+                                    disabled={isSaving}
+                                >
+                                    Cancel
+                                </button>
+                            </form>
+                        </section>
+                    )}
+
+                    <section aria-label="Projects list">
+                        {isLoading && (
+                            <p role="status">Loading projects...</p>
+                        )}
+
+                        {!isLoading && !error && projects.length === 0 && (
+                            <p>
+                                You don't have proyects yet. When you create a proyect,
+                                it should appear here. 
+                            </p>
+                        )}
+
+                        {!isLoading && !error && projects.length > 0 && (
+                            <div className="projects-grid">
+                                {projects.map((project) => (
+                                    <article
+                                        className="project-card"
+                                        key={project.id}
+                                    >
+                                        <h2 className="project-card-title">{project.name}</h2>
+
+                                        <p className="project-card-description">
+                                            {project.description ||
+                                                'N/A description.'}
+                                        </p>
+
+                                        <small className="project-card-meta">
+                                            Created at {' '}
+                                            {new Date(
+                                                project.createdAt,
+                                            ).toLocaleDateString()}
+                                        </small>
+
+                                        <div className="project-card-actions">
+                                            <Link
+                                                to={`/projects/${project.id}`}
+                                            >
+                                                View project
+                                            </Link>
+
+                                            <div className="project-card-actions-right">
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        openEditForm(project)
+                                                    }
+                                                >
+                                                    Edit
+                                                </button>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        void handleDelete(project)
+                                                    }
+                                                    disabled={
+                                                        deletingId === project.id
+                                                    }
+                                                >
+                                                    {deletingId === project.id
+                                                        ? 'Deleting...'
+                                                        : 'Delete'}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </article>
+                                ))}
+                            </div>
+                        )}
+                    </section>
+                </div>
+            </div>
         </main>
     )
 }

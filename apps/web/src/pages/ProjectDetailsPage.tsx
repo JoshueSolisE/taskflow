@@ -1,5 +1,5 @@
+import { Link, useParams } from 'react-router'
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router'
 import {
     createTask,
     deleteTask,
@@ -200,149 +200,215 @@ export default function ProjectDetailsPage() {
     }
 
     return (
-        <section>
-            <h1>{project.name}</h1>
-
-            <p>
-                {project.description || 'This project has no description.'}
-            </p>
-
-            <h2>{editingTaskId ? 'Edit task' : 'Create task'}</h2>
-
-            <form onSubmit={handleSubmitTask}>
-                <div>
-                    <label htmlFor="task-title">Title *</label>
-                    <input
-                        id='task-title'
-                        name='title'
-                        type="text"
-                        maxLength={200}
-                        value={title}
-                        onChange={(event) => setTitle(event.target.value)}
-                        required
-                    />
-                </div>
-
-                <div>
-                    <label htmlFor="task-description">Description</label>
-                    <textarea
-                        id="task-description"
-                        name="description"
-                        maxLength={2000}
-                        value={description}
-                        onChange={(event) =>
-                            setDescription(event.target.value)
-                        }
-                    />
-                </div>
-
-                <div>
-                    <label htmlFor="task-status">Status</label>
-                    <select
-                        id="task-status"
-                        value={status}
-                        onChange={(event) =>
-                            setStatus(event.target.value as TaskStatus)
-                        }
+        <main className='main-content'>
+            <div className='page-content'>
+                <header className='project-details-header'>
+                    <Link
+                        className="project-back-link"
+                        to="/projects"
                     >
-                        <option value="TODO">To Do</option>
-                        <option value="IN_PROGRESS">In Progress</option>
-                        <option value="DONE">Done</option>
-                    </select>
-                </div>
+                        ← Back to projects
+                    </Link>
 
-                <div>
-                    <label htmlFor="task-priority">Priority</label>
-                    <select
-                        id="task-priority"
-                        value={priority}
-                        onChange={(event) =>
-                            setPriority(event.target.value as TaskPriority)
-                        }
+                    <div className='project-details-heading'>
+                        <h1>{project.name}</h1>
+
+                        <p>
+                            {project.description ||
+                                'This project has no description.'}
+                        </p>
+                    </div>
+                </header>
+
+                <h2>{editingTaskId ? 'Edit task' : 'Create task'}</h2>
+                
+                <section className="task-form-section">
+                    <div className="task-section-heading">
+                        <div>
+                            <h2>{editingTaskId ? 'Edit task' : 'Create task'}</h2>
+                            <p>
+                                {editingTaskId
+                                    ? 'Update the details of this task.'
+                                    : 'Add a new task to this project.'}
+                            </p>
+                        </div>
+                    </div>
+
+                    <form
+                        className="task-form-card"
+                        onSubmit={handleSubmitTask}
                     >
-                        <option value="LOW">Low</option>
-                        <option value="MEDIUM">Medium</option>
-                        <option value="HIGH">High</option>
-                    </select>
-                </div>
+                        <div className="task-form-grid">
+                            <div className="task-form-field task-form-field-wide">
+                                <label htmlFor="task-title">Title *</label>
+                                <input
+                                    id="task-title"
+                                    name="title"
+                                    type="text"
+                                    maxLength={200}
+                                    value={title}
+                                    onChange={(event) => setTitle(event.target.value)}
+                                    placeholder="Enter a task title"
+                                    required
+                                />
+                            </div>
 
-                <div>
-                    <label htmlFor="task-due-date">Deadline</label>
-                    <input
-                        id='task-due-date'
-                        name='dueDate'
-                        type="date"
-                        value={dueDate}
-                        onChange={(event) => setDueDate(event.target.value)}
-                    />
-                </div>
+                            <div className="task-form-field task-form-field-wide">
+                                <label htmlFor="task-description">Description</label>
+                                <textarea
+                                    id="task-description"
+                                    name="description"
+                                    maxLength={2000}
+                                    rows={3}
+                                    value={description}
+                                    onChange={(event) => setDescription(event.target.value)}
+                                    placeholder="Describe the task (optional)"
+                                />
+                            </div>
 
-                <button
-                    type="submit"
-                    disabled={isSaving}>
-                    {isSaving
-                        ? 'Saving...'
-                        : editingTaskId !== null
-                            ? 'Save changes'
-                            : 'Create task'}
-                </button>
+                            <div className="task-form-field">
+                                <label htmlFor="task-status">Status</label>
+                                <select
+                                    id="task-status"
+                                    value={status}
+                                    onChange={(event) =>
+                                        setStatus(event.target.value as TaskStatus)
+                                    }
+                                >
+                                    <option value="TODO">To Do</option>
+                                    <option value="IN_PROGRESS">In Progress</option>
+                                    <option value="DONE">Done</option>
+                                </select>
+                            </div>
 
-                {editingTaskId && (
-                    <button
-                        type='button'
-                        onClick={resetForm}
-                        disabled={isSaving}
-                    >
-                        Cancel edit
-                    </button>
-                )}
-            </form>
+                            <div className="task-form-field">
+                                <label htmlFor="task-priority">Priority</label>
+                                <select
+                                    id="task-priority"
+                                    value={priority}
+                                    onChange={(event) =>
+                                        setPriority(event.target.value as TaskPriority)
+                                    }
+                                >
+                                    <option value="LOW">Low</option>
+                                    <option value="MEDIUM">Medium</option>
+                                    <option value="HIGH">High</option>
+                                </select>
+                            </div>
 
-            {error && <p role='alert'>{error}</p>}
-            {success && <p role='status'>{success}</p>}
+                            <div className="task-form-field">
+                                <label htmlFor="task-due-date">Deadline</label>
+                                <input
+                                    id="task-due-date"
+                                    name="dueDate"
+                                    type="date"
+                                    value={dueDate}
+                                    onChange={(event) => setDueDate(event.target.value)}
+                                />
+                            </div>
+                        </div>
 
-            <h2>Project tasks</h2>
+                        <div className="task-form-actions">
+                            <button type="submit" disabled={isSaving}>
+                                {isSaving
+                                    ? 'Saving...'
+                                    : editingTaskId
+                                        ? 'Save changes'
+                                        : 'Create task'}
+                            </button>
 
-            {tasks.length === 0 ? (
-                <p>This project does not yet have any tasks.</p>
-            ) : (
-                <ul>
-                    {tasks.map((task) => (
-                        <li key={task.id}>
-                            <strong>{task.title}</strong>
-                            {' — '}
-                            Status: {task.status}
-                            {' — '}
-                            Priority: {task.priority}
-
-                            {task.dueDate && (
-                                <p>
-                                    Deadline:{''}
-                                    {new Date(
-                                        task.dueDate,
-                                    ).toLocaleDateString()}
-                                </p>
+                            {editingTaskId && (
+                                <button
+                                    type="button"
+                                    onClick={resetForm}
+                                    disabled={isSaving}
+                                >
+                                    Cancel edit
+                                </button>
                             )}
+                        </div>
+                    </form>
+                </section>
 
-                            <button
-                                type='button'
-                                onClick={() => handleEditTask(task)}
-                                disabled={isSaving || deletingTaskId !== null}
-                            >
-                                Edit
-                            </button>
+                {error && <p role='alert'>{error}</p>}
+                {success && <p role='status'>{success}</p>}
 
-                            <button
-                                type='button'
-                                onClick={() => handleDeleteTask(task)}
-                                disabled={isSaving || deletingTaskId !== null}
-                            >
-                                {deletingTaskId === task.id ? 'Deleting...' : 'Delete'}
-                            </button>
-                        </li>
-                    ))}
-                </ul>
-            )}
-        </section>
+
+                <section className="project-tasks-section">
+                    <div className="task-section-heading">
+                        <div>
+                            <h2>Project tasks</h2>
+                            <p>
+                                {tasks.length === 1
+                                    ? '1 task in this project'
+                                    : `${tasks.length} tasks in this project`}
+                            </p>
+                        </div>
+                    </div>
+
+                    {tasks.length === 0 ? (
+                        <div className="task-empty-state">
+                            <h3>No tasks yet</h3>
+                            <p>Create your first task using the form above.</p>
+                        </div>
+                    ) : (
+                        <ul className="project-task-list">
+                            {tasks.map((task) => (
+                                <li className="project-task-item" key={task.id}>
+                                    <div className="project-task-info">
+                                        <strong className="project-task-title">
+                                            {task.title}
+                                        </strong>
+
+                                        {task.description && (
+                                            <p className="project-task-description">
+                                                {task.description}
+                                            </p>
+                                        )}
+
+                                        <div className="project-task-meta">
+                                            <span className={`task-status-label status-${task.status.toLowerCase().replace('_', '-')}`}>
+                                                {task.status.replace('_', ' ')}
+                                            </span>
+
+                                            <span className={`task-priority-label priority-${task.priority.toLowerCase()}`}>
+                                                {task.priority.charAt(0) + task.priority.slice(1).toLowerCase()} priority
+                                            </span>
+
+                                            <span>
+                                                Deadline:{' '}
+                                                {task.dueDate
+                                                    ? new Date(`${task.dueDate.slice(0, 10)}T00:00:00`).toLocaleDateString()
+                                                    : 'No deadline'}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="project-task-actions">
+                                        <button
+                                            type="button"
+                                            onClick={() => handleEditTask(task)}
+                                            disabled={isSaving || deletingTaskId !== null}
+                                        >
+                                            Edit
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => void handleDeleteTask(task)}
+                                            disabled={isSaving || deletingTaskId !== null}
+                                        >
+                                            {deletingTaskId === task.id
+                                                ? 'Deleting...'
+                                                : 'Delete'}
+                                        </button>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </section>
+            </div>
+        </main>
     )
 }
