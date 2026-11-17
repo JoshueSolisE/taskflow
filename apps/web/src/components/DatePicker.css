@@ -1,0 +1,197 @@
+
+.date-picker {
+    position: relative;
+    width: 100%;
+}
+
+.date-picker-trigger {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    min-height: 46px;
+    padding: 0.75rem 0.9rem;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    background: var(--color-surface);
+    color: var(--color-text-muted);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.date-picker-trigger.has-value {
+    color: var(--color-text);
+}
+
+.date-picker-trigger:hover {
+    border-color: var(--color-primary);
+}
+
+.date-picker-trigger:focus-visible {
+    outline: 3px solid rgb(70 87 200 / 18%);
+    outline-offset: 2px;
+}
+
+.date-picker-trigger:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.date-picker-trigger svg {
+    flex-shrink: 0;
+    color: var(--color-primary);
+}
+
+.date-picker-popover {
+    position: absolute;
+    z-index: 50;
+    top: calc(100% + 8px);
+    left: 0;
+    width: max-content;
+    max-width: min(340px, calc(100vw - 32px));
+    padding: 14px;
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+    background: var(--color-surface);
+    color: var(--color-text);
+    box-shadow: 0 16px 40px rgb(0 0 0 / 22%);
+    animation: date-picker-appear 140ms ease-out;
+}
+
+.date-picker-popover .rdp-root {
+    --rdp-accent-color: var(--color-primary);
+    --rdp-accent-background-color: var(--color-surface-secondary);
+    --rdp-day_button-border-radius: 9px;
+    --rdp-day_button-height: 38px;
+    --rdp-day_button-width: 38px;
+    --rdp-day-height: 40px;
+    --rdp-day-width: 40px;
+    --rdp-nav-height: 38px;
+    --rdp-selected-border: 2px solid var(--color-primary);
+
+    margin: 0;
+    color: var(--color-text);
+}
+
+.date-picker-popover .rdp-month_caption {
+    min-height: 38px;
+    color: var(--color-text);
+    font-size: 0.95rem;
+    font-weight: 650;
+}
+
+.date-picker-popover .rdp-button_previous,
+.date-picker-popover .rdp-button_next {
+    border-radius: 9px;
+    color: var(--color-text);
+}
+
+.date-picker-popover .rdp-button_previous:hover,
+.date-picker-popover .rdp-button_next:hover {
+    background: var(--color-surface-secondary);
+}
+
+.date-picker-popover .rdp-weekday {
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.date-picker-popover .rdp-day_button {
+    color: var(--color-text);
+    font-size: 0.85rem;
+    transition: background-color 120ms ease, color 120ms ease;
+}
+
+.date-picker-popover .rdp-day_button:hover {
+    background: var(--color-surface-secondary);
+}
+
+.date-picker-popover .rdp-selected .rdp-day_button {
+    background: var(--color-primary);
+    color: #ffffff;
+    font-weight: 650;
+}
+
+.date-picker-popover .rdp-today:not(.rdp-selected) .rdp-day_button {
+    color: var(--color-primary);
+    font-weight: 750;
+}
+
+.date-picker-popover .rdp-outside .rdp-day_button {
+    opacity: 0.5;
+}
+
+.date-picker-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 8px;
+    padding-top: 12px;
+    border-top: 1px solid var(--color-border);
+}
+
+.date-picker-text-button,
+.date-picker-today-button {
+    border: 0;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.date-picker-text-button {
+    background: transparent;
+    color: var(--color-text-muted);
+}
+
+.date-picker-text-button:hover {
+    background: var(--color-surface-secondary);
+    color: var(--color-text);
+}
+
+.date-picker-today-button {
+    background: var(--color-primary);
+    color: #ffffff;
+}
+
+.date-picker-today-button:hover {
+    background: var(--color-primary-hover);
+}
+
+@keyframes date-picker-appear {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 480px) {
+    .date-picker-popover {
+        max-width: calc(100vw - 32px);
+        padding: 10px;
+    }
+
+    .date-picker-popover .rdp-root {
+        --rdp-day_button-height: 34px;
+        --rdp-day_button-width: 34px;
+        --rdp-day-height: 36px;
+        --rdp-day-width: 36px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .date-picker-popover {
+        animation: none;
+    }
+}

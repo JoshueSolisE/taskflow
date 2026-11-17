@@ -9,6 +9,7 @@ import {
 } from '../services/api'
 import type { CreateTaskInput } from "../services/api"
 import type { Task, Project, TaskStatus, TaskPriority } from '../types/task'
+import DatePicker from '../components/DatePicker.tsx'
 
 type TaskWithProject = Task & {
     projectName: string
@@ -425,14 +426,13 @@ export default function TasksPage() {
                             </label>
                         </div>
 
-                        <label>
-                            Due Date
-                            <input
-                                type="date"
-                                value={dueDate}
-                                onChange={(event) => setDueDate(event.target.value)}
-                            />
-                        </label>
+                        <label htmlFor="task-due-date">Due Date</label>
+                        <DatePicker
+                            id="task-due-date"
+                            value={dueDate}
+                            onChange={setDueDate}
+                            placeholder="Pick a due date"
+                        />
 
                         <div className="task-form-actions">
                             <button
@@ -583,7 +583,7 @@ export default function TasksPage() {
 
                                     <button
                                         type="button"
-                                        className="secondary-button"
+                                        className="action-button action-button--edit"
                                         onClick={() => openEditForm(task)}
                                         disabled={isSaving || deletingTaskId !== null}
                                     >
@@ -592,7 +592,7 @@ export default function TasksPage() {
 
                                     <button
                                         type="button"
-                                        className="secondary-button"
+                                        className="action-button action-button--delete"
                                         onClick={() => void handleDelete(task)}
                                         disabled={isSaving || deletingTaskId !== null}
                                     >

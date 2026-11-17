@@ -761,7 +761,7 @@ function App() {
                   <span className="task-date">{task.dueDate}</span>
                   <button
                     type="button"
-                    className="secondary-button"
+                    className="action-button action-button--edit"
                     onClick={() => startEditingTask(task)}
                     disabled={updatingTask}
                   >
@@ -769,7 +769,7 @@ function App() {
                   </button>
                   <button
                     type="button"
-                    className="secondary-button"
+                    className="action-button action-button--delete"
                     onClick={() => void handleDeleteTask(task)}
                     disabled={deletingTaskId != null || updatingTask}
                   >

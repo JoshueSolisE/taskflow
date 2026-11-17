@@ -10,6 +10,7 @@ import {
 import type { Project, Task } from '../types/task'
 import type { TaskPriority, TaskStatus } from '../types/task'
 import type { FormEvent } from 'react'
+import DatePicker from '../components/DatePicker.tsx'
 
 export default function ProjectDetailsPage() {
     const { projectId } = useParams()
@@ -298,18 +299,17 @@ export default function ProjectDetailsPage() {
 
                             <div className="task-form-field">
                                 <label htmlFor="task-due-date">Deadline</label>
-                                <input
+                                <DatePicker
                                     id="task-due-date"
-                                    name="dueDate"
-                                    type="date"
                                     value={dueDate}
-                                    onChange={(event) => setDueDate(event.target.value)}
+                                    onChange={setDueDate}
+                                    placeholder="Pick a deadline"
                                 />
                             </div>
                         </div>
 
                         <div className="task-form-actions">
-                            <button type="submit" disabled={isSaving}>
+                            <button className='primary-button' type="submit" disabled={isSaving}>
                                 {isSaving
                                     ? 'Saving...'
                                     : editingTaskId
@@ -386,6 +386,7 @@ export default function ProjectDetailsPage() {
 
                                     <div className="project-task-actions">
                                         <button
+                                        className='action-button action-button--edit'
                                             type="button"
                                             onClick={() => handleEditTask(task)}
                                             disabled={isSaving || deletingTaskId !== null}
@@ -394,6 +395,7 @@ export default function ProjectDetailsPage() {
                                         </button>
 
                                         <button
+                                        className='action-button action-button--delete'
                                             type="button"
                                             onClick={() => void handleDeleteTask(task)}
                                             disabled={isSaving || deletingTaskId !== null}
